@@ -254,7 +254,7 @@ boolean PubSubClient::connect(const char *id, const char *user, const char *pass
 
             lastInActivity = lastOutActivity = millis();
 
-            while (!_client->available()) {
+            while (_client->available() <= 0) {
                 unsigned long t = millis();
                 if (t-lastInActivity >= ((int32_t) this->socketTimeout*1000UL)) {
                     _state = MQTT_CONNECTION_TIMEOUT;
@@ -286,11 +286,16 @@ boolean PubSubClient::connect(const char *id, const char *user, const char *pass
 
 // reads a byte into result
 boolean PubSubClient::readByte(uint8_t * result) {
-  if (!_client->available()) {
+  if (_client->available() > 0) {
+    *result = _client->read();
+    if (*result == -1) {
+      return false;
+    }
+    return true;
+  }
+  else {
     return false;
   }
-  *result = _client->read();
-  return true;
 }
 
 // reads a byte into result[*index] and increments index
@@ -379,7 +384,7 @@ boolean PubSubClient::loop() {
                 pingOutstanding = true;
             }
         }
-        if (_client->available()) {
+        if (_client->available() > 0) {
             uint8_t llen;
             uint16_t len = readPacket(&llen);
             uint16_t msgId = 0;
